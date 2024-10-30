@@ -1,8 +1,10 @@
+// lib/pages/home_screen.dart
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:minggu_4/pages/login_verify.dart';
 import 'dart:convert';
-import 'package:minggu_4/pages/register_screen.dart'; // Import RegisterScreen for registration
+import 'package:minggu_4/pages/register_screen.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -13,13 +15,13 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   final phoneController = TextEditingController();
-  final passwordController = TextEditingController(); // Add password controller
+  final passwordController = TextEditingController();
   bool isLoading = false;
 
   @override
   void dispose() {
     phoneController.dispose();
-    passwordController.dispose(); // Dispose password controller
+    passwordController.dispose();
     super.dispose();
   }
 
@@ -28,14 +30,20 @@ class _HomeScreenState extends State<HomeScreen> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: Text(isError ? 'Error' : 'Success'),
-          content: Text(message),
+          title: Text(
+            isError ? 'Error' : 'Success',
+            style: GoogleFonts.poppins(),
+          ),
+          content: Text(
+            message,
+            style: GoogleFonts.poppins(),
+          ),
           actions: [
             TextButton(
               onPressed: () {
                 Navigator.of(context).pop();
               },
-              child: const Text('OK'),
+              child: Text('OK', style: GoogleFonts.poppins()),
             ),
           ],
         );
@@ -43,7 +51,6 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // Displaying remaining ban time if the user is locked out
   void showBanMessage(DateTime lockUntil) {
     Duration remaining = lockUntil.difference(DateTime.now());
     String minutes = remaining.inMinutes.toString();
@@ -82,7 +89,6 @@ class _HomeScreenState extends State<HomeScreen> {
       if (response.statusCode == 200) {
         json.decode(response.body);
 
-        // Navigate to login verification page
         Navigator.push(
           context,
           MaterialPageRoute(
@@ -116,171 +122,159 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFF093C25),
       body: SingleChildScrollView(
-        child: Column(
-          children: [
-            const SizedBox(height: 100),
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 24),
-              child: Text(
-                "Aplikasi Warung Mbah Manto",
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFFFFC107),
-                ),
-              ),
-            ),
-            const SizedBox(height: 20),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24),
-              child: Image.asset(
-                './public/password.png',
-                height: 400,
-                fit: BoxFit.cover,
-              ),
-            ),
-            const SizedBox(height: 16),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24),
-              child: Container(
-                width: MediaQuery.of(context).size.width,
+        child: Padding(
+          padding: const EdgeInsets.all(20.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const SizedBox(height: 40),
+              Container(
                 decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(12),
-                  color: Colors.yellow.shade50,
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.grey.withOpacity(0.3),
-                      spreadRadius: 2,
-                      blurRadius: 5,
-                      offset: const Offset(0, 3),
-                    ),
-                  ],
+                  color: const Color(0xFF157B3E),
+                  borderRadius: BorderRadius.circular(25),
                 ),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
-                  child: TextField(
-                    keyboardType: TextInputType.phone,
-                    decoration: const InputDecoration(
-                      labelText: "Nomor HP",
-                      labelStyle: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        color: Colors.grey,
-                      ),
-                      hintText: "Contoh: 628123456789",
-                      border: UnderlineInputBorder(
-                        borderSide: BorderSide.none,
-                      ),
-                    ),
-                    controller: phoneController,
-                  ),
+                child: IconButton(
+                  icon: const Icon(Icons.arrow_back, color: Colors.white),
+                  onPressed: () {
+                    Navigator.pop(context);
+                  },
                 ),
               ),
-            ),
-            const SizedBox(height: 16),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24),
-              child: Container(
-                width: MediaQuery.of(context).size.width,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(12),
-                  color: Colors.yellow.shade50,
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.grey.withOpacity(0.3),
-                      spreadRadius: 2,
-                      blurRadius: 5,
-                      offset: const Offset(0, 3),
-                    ),
-                  ],
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
-                  child: TextField(
-                    obscureText: true, // Hide password input
-                    decoration: const InputDecoration(
-                      labelText: "Password",
-                      labelStyle: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        color: Colors.grey,
-                      ),
-                      hintText: "Masukkan password...",
-                      border: UnderlineInputBorder(
-                        borderSide: BorderSide.none,
-                      ),
-                    ),
-                    controller: passwordController,
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(height: 24),
-            if (!isLoading) ...[
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24),
+              const SizedBox(height: 40),
+              Center(
                 child: Container(
-                  width: MediaQuery.of(context).size.width,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(12),
-                    color: Colors.yellow.shade700,
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.yellow.shade600.withOpacity(0.5),
-                        spreadRadius: 2,
-                        blurRadius: 7,
-                        offset: const Offset(0, 3),
-                      ),
-                    ],
-                  ),
-                  child: TextButton(
-                    onPressed: login,
-                    child: const Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.login,
-                          color: Colors.white,
-                        ),
-                        SizedBox(width: 8),
-                        Text(
-                          "Masuk",
-                          style: TextStyle(color: Colors.white, fontSize: 16),
-                        ),
-                      ],
-                    ),
+                  width: 300,
+                  height: 300,
+                  child: Image.asset(
+                    'public/hero.png',
+                    height: 300,
+                    fit: BoxFit.cover,
                   ),
                 ),
               ),
-            ] else ...[
-              const CircularProgressIndicator(
-                valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFFFC107)),
+              const SizedBox(height: 20),
+              Center(
+                child: Text(
+                  'Sign In',
+                  style: GoogleFonts.poppins(
+                    color: Colors.white,
+                    fontSize: 32,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 40),
+              Text(
+                'Nomor Handphone',
+                style: GoogleFonts.poppins(
+                  color: Colors.white,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Container(
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFFFFFF),
+                  borderRadius: BorderRadius.circular(100),
+                ),
+                child: TextField(
+                  controller: phoneController,
+                  style: GoogleFonts.poppins(color: Color(0xFF000000)),
+                  decoration: InputDecoration(
+                    border: InputBorder.none,
+                    contentPadding:
+                        EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    hintText: '628188280680',
+                    hintStyle: GoogleFonts.poppins(color: Color(0xFFB0A6A6)),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
+              Text(
+                'Password',
+                style: GoogleFonts.poppins(
+                  color: Colors.white,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Container(
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFFFFFF),
+                  borderRadius: BorderRadius.circular(100),
+                ),
+                child: TextField(
+                  controller: passwordController,
+                  obscureText: true,
+                  style: GoogleFonts.poppins(color: Color(0xFF000000)),
+                  decoration: InputDecoration(
+                    border: InputBorder.none,
+                    contentPadding:
+                        EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    hintText: 'Password',
+                    hintStyle: GoogleFonts.poppins(color: Color(0xFFB0A6A6)),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 40),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: isLoading ? null : login,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF00A86B),
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(100),
+                    ),
+                  ),
+                  child: isLoading
+                      ? const CircularProgressIndicator(color: Colors.white)
+                      : Text(
+                          'Sign In',
+                          style: GoogleFonts.poppins(
+                            color: Colors.white,
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                ),
+              ),
+              const SizedBox(height: 20),
+              Center(
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      'Belum memiliki akun? ',
+                      style: GoogleFonts.poppins(color: Colors.white),
+                    ),
+                    GestureDetector(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const RegisterScreen(),
+                          ),
+                        );
+                      },
+                      child: Text(
+                        'Daftarkan sekarang',
+                        style: GoogleFonts.poppins(
+                          color: Color(0xFF00A86B),
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ],
-            const SizedBox(height: 16),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24),
-              child: TextButton(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const RegisterScreen(),
-                    ),
-                  );
-                },
-                child: const Text(
-                  "Belum memiliki akun? Daftar sekarang",
-                  style: TextStyle(
-                    color: Colors.blue,
-                    fontWeight: FontWeight.bold,
-                    decoration: TextDecoration.underline,
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(height: 24),
-          ],
+          ),
         ),
       ),
     );

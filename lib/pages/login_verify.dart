@@ -1,7 +1,10 @@
+// lib/pages/login_verify.dart
+
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:minggu_4/pages/main_screen.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class LoginVerifyPage extends StatefulWidget {
   final String phone;
@@ -36,9 +39,7 @@ class _LoginVerifyPageState extends State<LoginVerifyPage> {
           content: Text(message),
           actions: [
             TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
+              onPressed: () => Navigator.of(context).pop(),
               child: const Text('OK'),
             ),
           ],
@@ -53,9 +54,7 @@ class _LoginVerifyPageState extends State<LoginVerifyPage> {
       return;
     }
 
-    setState(() {
-      isLoading = true;
-    });
+    setState(() => isLoading = true);
 
     try {
       final response = await http.post(
@@ -85,16 +84,12 @@ class _LoginVerifyPageState extends State<LoginVerifyPage> {
     } catch (e) {
       showMessage('Terjadi kesalahan: $e');
     } finally {
-      setState(() {
-        isLoading = false;
-      });
+      setState(() => isLoading = false);
     }
   }
 
   Future<void> resendLoginOTP() async {
-    setState(() {
-      isLoading = true;
-    });
+    setState(() => isLoading = true);
 
     try {
       final response = await http.post(
@@ -115,9 +110,7 @@ class _LoginVerifyPageState extends State<LoginVerifyPage> {
     } catch (e) {
       showMessage('Terjadi kesalahan: $e');
     } finally {
-      setState(() {
-        isLoading = false;
-      });
+      setState(() => isLoading = false);
     }
   }
 
@@ -125,31 +118,33 @@ class _LoginVerifyPageState extends State<LoginVerifyPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text(
+        title: Text(
           'Verifikasi OTP',
-          style: TextStyle(color: Colors.white),
+          style: GoogleFonts.poppins(color: Colors.white),
         ),
-        backgroundColor: const Color(0xFFFFC107),
+        backgroundColor: const Color(0xFF093C25),
         iconTheme: const IconThemeData(color: Colors.white),
       ),
+      backgroundColor: const Color(0xFF093C25),
       body: SingleChildScrollView(
         child: Padding(
           padding: const EdgeInsets.all(24.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
+              Text(
                 'Masukkan Kode OTP',
-                style: TextStyle(
+                style: GoogleFonts.poppins(
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
+                  color: Colors.white,
                 ),
               ),
               const SizedBox(height: 8),
               Text(
                 'Kode OTP telah dikirim ke WhatsApp ${widget.phone}',
-                style: const TextStyle(
-                  color: Colors.grey,
+                style: GoogleFonts.poppins(
+                  color: Colors.grey.shade300,
                   fontSize: 16,
                 ),
               ),
@@ -157,7 +152,7 @@ class _LoginVerifyPageState extends State<LoginVerifyPage> {
               Container(
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(12),
-                  color: Colors.yellow.shade50,
+                  color: Colors.green.shade50,
                   boxShadow: [
                     BoxShadow(
                       color: Colors.grey.withOpacity(0.3),
@@ -172,14 +167,14 @@ class _LoginVerifyPageState extends State<LoginVerifyPage> {
                   child: TextField(
                     controller: otpController,
                     keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(
+                    decoration: InputDecoration(
                       labelText: "Kode OTP",
-                      labelStyle: TextStyle(
+                      labelStyle: GoogleFonts.poppins(
                         fontWeight: FontWeight.bold,
                         color: Colors.grey,
                       ),
                       hintText: "Masukkan 6 digit kode OTP",
-                      border: UnderlineInputBorder(
+                      border: const UnderlineInputBorder(
                         borderSide: BorderSide.none,
                       ),
                     ),
@@ -187,91 +182,94 @@ class _LoginVerifyPageState extends State<LoginVerifyPage> {
                 ),
               ),
               const SizedBox(height: 24),
-              if (!isLoading) ...[
-                Container(
-                  width: double.infinity,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(12),
-                    color: Colors.yellow.shade700,
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.yellow.shade600.withOpacity(0.5),
-                        spreadRadius: 2,
-                        blurRadius: 7,
-                        offset: const Offset(0, 3),
+              isLoading
+                  ? const Center(
+                      child: CircularProgressIndicator(
+                        valueColor:
+                            AlwaysStoppedAnimation<Color>(Color(0xFF1B9B5E)),
                       ),
-                    ],
-                  ),
-                  child: TextButton(
-                    onPressed: verifyLoginOTP,
-                    child: const Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
+                    )
+                  : Column(
                       children: [
-                        Icon(
-                          Icons.check_circle,
-                          color: Colors.white,
+                        Container(
+                          width: double.infinity,
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(12),
+                            color: const Color(0xFF1B9B5E),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.green.shade700.withOpacity(0.5),
+                                spreadRadius: 2,
+                                blurRadius: 7,
+                                offset: const Offset(0, 3),
+                              ),
+                            ],
+                          ),
+                          child: TextButton(
+                            onPressed: verifyLoginOTP,
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                const Icon(
+                                  Icons.check_circle,
+                                  color: Colors.white,
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  "Verifikasi",
+                                  style: GoogleFonts.poppins(
+                                      color: Colors.white, fontSize: 16),
+                                ),
+                              ],
+                            ),
+                          ),
                         ),
-                        SizedBox(width: 8),
-                        Text(
-                          "Verifikasi",
-                          style: TextStyle(color: Colors.white, fontSize: 16),
+                        const SizedBox(height: 16),
+                        Center(
+                          child: TextButton(
+                            onPressed: resendLoginOTP,
+                            child: Text(
+                              "Kirim Ulang OTP",
+                              style: GoogleFonts.poppins(
+                                color: const Color(0xFF1B9B5E),
+                                decoration: TextDecoration.underline,
+                              ),
+                            ),
+                          ),
                         ),
                       ],
                     ),
-                  ),
-                ),
-              ] else ...[
-                const Center(
-                  child: CircularProgressIndicator(
-                    valueColor:
-                        AlwaysStoppedAnimation<Color>(Color(0xFFFFC107)),
-                  ),
-                ),
-              ],
-              const SizedBox(height: 16),
-              if (!isLoading) ...[
-                Center(
-                  child: TextButton(
-                    onPressed: resendLoginOTP,
-                    child: const Text(
-                      "Kirim Ulang OTP",
-                      style: TextStyle(
-                        color: Color(0xFFFFC107),
-                        decoration: TextDecoration.underline,
-                      ),
-                    ),
-                  ),
-                ),
-              ],
               const SizedBox(height: 24),
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: Colors.yellow.shade100,
+                  color: const Color(0xFF1B9B5E),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
+                    Text(
                       'Catatan:',
-                      style: TextStyle(
+                      style: GoogleFonts.poppins(
                         fontWeight: FontWeight.bold,
                         fontSize: 16,
+                        color: Colors.white,
                       ),
                     ),
                     const SizedBox(height: 8),
                     Text(
                       '• Kode OTP akan dikirim melalui WhatsApp ke nomor ${widget.phone}',
-                      style: const TextStyle(fontSize: 14),
+                      style: GoogleFonts.poppins(
+                          fontSize: 14, color: Colors.white),
                     ),
                     const Text(
                       '• Kode OTP berlaku selama 5 menit',
-                      style: TextStyle(fontSize: 14),
+                      style: TextStyle(fontSize: 14, color: Colors.white),
                     ),
                     const Text(
                       '• Pastikan aplikasi WhatsApp Anda aktif',
-                      style: TextStyle(fontSize: 14),
+                      style: TextStyle(fontSize: 14, color: Colors.white),
                     ),
                   ],
                 ),

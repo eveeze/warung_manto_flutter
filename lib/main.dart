@@ -1,7 +1,9 @@
-// lib/main.dart
-
 import 'package:flutter/material.dart';
-import 'package:minggu_4/pages/home_screen.dart';
+import 'package:minggu_4/pages/splash_screen.dart';
+import 'package:minggu_4/pages/intro_screen.dart';
+import 'package:minggu_4/pages/transaksi_screen.dart';
+import 'package:minggu_4/pages/cash_screen.dart';
+import 'package:minggu_4/pages/success_screen.dart';
 
 void main() {
   runApp(const MyApp());
@@ -13,13 +15,51 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-        title: 'Widget App Demo',
-        theme: ThemeData(
-          // Ubah warna tema utama menjadi kuning
-          colorScheme: ColorScheme.fromSeed(seedColor: Colors.yellow),
-          useMaterial3: true,
-        ),
-        debugShowCheckedModeBanner: false,
-        home: const HomeScreen());
+      title: 'Warung Mbah Manto',
+      theme: ThemeData(
+        useMaterial3: true,
+      ),
+      debugShowCheckedModeBanner: false,
+      home: const SplashScreenPage(), // Start with splash screen
+      routes: {
+        '/intro': (context) => const IntroScreen(),
+        '/transaksi': (context) => TransaksiScreen(
+              token: 'your_token', // Replace with actual token
+              cart: {}, // Replace with actual cart data
+              onCartUpdate: (updatedCart) {},
+            ),
+        '/cash': (context) => CashScreen(
+              items: [], // Replace with actual items
+              totalCost: 0.0, // Replace with actual total cost
+              paymentType: 'cash', // Replace with the appropriate payment type
+              token: 'your_token', // Replace with actual token
+              onPaymentComplete: (_) {},
+            ),
+        '/success': (context) => SuccessScreen(),
+      },
+    );
+  }
+}
+
+class SplashScreenPage extends StatefulWidget {
+  const SplashScreenPage({super.key});
+
+  @override
+  _SplashScreenPageState createState() => _SplashScreenPageState();
+}
+
+class _SplashScreenPageState extends State<SplashScreenPage> {
+  @override
+  void initState() {
+    super.initState();
+    // Navigate to IntroScreen after 3 seconds
+    Future.delayed(const Duration(seconds: 3), () {
+      Navigator.pushReplacementNamed(context, '/intro');
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return const SplashScreen(); // Show the splash screen first
   }
 }
