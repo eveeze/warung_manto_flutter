@@ -1,24 +1,25 @@
-// lib/pages/add_screen.dart
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 class AddScreen extends StatefulWidget {
   final String token;
   final VoidCallback onSave;
 
   const AddScreen({
-    Key? key,
+    super.key,
     required this.token,
     required this.onSave,
-  }) : super(key: key);
+  });
 
   @override
   _AddScreenState createState() => _AddScreenState();
 }
 
 class _AddScreenState extends State<AddScreen> {
+  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _stockController = TextEditingController();
   final TextEditingController _minStockController = TextEditingController();
@@ -30,6 +31,7 @@ class _AddScreenState extends State<AddScreen> {
 
   String? selectedCategoryId;
   List<dynamic> categories = [];
+  bool _isLoading = false;
 
   @override
   void initState() {
@@ -40,24 +42,30 @@ class _AddScreenState extends State<AddScreen> {
   Future<void> fetchCategories() async {
     try {
       final response = await http.get(
-        Uri.parse('http://10.0.2.2:3000/api/categories'),
+        Uri.parse('http://103.127.138.32/api/categories'),
       );
 
       if (response.statusCode == 200) {
         final List data = json.decode(response.body);
         setState(() {
-          categories = data; // Save categories list
+          categories = data;
         });
       }
     } catch (error) {
-      print('Error fetching categories: $error');
+      _showErrorSnackBar('Gagal memuat kategori');
     }
   }
 
   Future<void> addProduct() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    setState(() {
+      _isLoading = true;
+    });
+
     try {
       final response = await http.post(
-        Uri.parse('http://10.0.2.2:3000/api/products'),
+        Uri.parse('http://103.127.138.32/api/products'),
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer ${widget.token}',
@@ -74,110 +82,250 @@ class _AddScreenState extends State<AddScreen> {
         }),
       );
 
+      setState(() {
+        _isLoading = false;
+      });
+
       if (response.statusCode == 201) {
         widget.onSave();
-        Navigator.pop(context); // Return to the previous screen
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Product added successfully')),
-        );
+        Navigator.pop(context);
+        _showSuccessSnackBar('Produk berhasil ditambahkan');
+      } else {
+        _showErrorSnackBar('Gagal menambahkan produk');
       }
     } catch (error) {
-      print('Error adding product: $error');
+      setState(() {
+        _isLoading = false;
+      });
+      _showErrorSnackBar('Terjadi kesalahan');
     }
+  }
+
+  void _showSuccessSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          message,
+          style: GoogleFonts.poppins(color: Colors.white),
+        ),
+        backgroundColor: Colors.green,
+      ),
+    );
+  }
+
+  void _showErrorSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          message,
+          style: GoogleFonts.poppins(color: Colors.white),
+        ),
+        backgroundColor: Colors.red,
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.white,
       appBar: AppBar(
+        elevation: 0,
+        backgroundColor: const Color(0xFF093C25),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
         title: Text(
-          'Tambah Produk',
+          'Tambah Produk Baru',
           style: GoogleFonts.poppins(
             fontSize: 20,
             color: Colors.white,
             fontWeight: FontWeight.bold,
           ),
         ),
-        backgroundColor: const Color(0xFF093C25),
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: ListView(
-          children: [
-            _buildTextField(_nameController, 'Product Name'),
-            _buildTextField(_stockController, 'Stock',
-                keyboardType: TextInputType.number),
-            _buildTextField(_minStockController, 'Minimum Stock',
-                keyboardType: TextInputType.number),
-            _buildTextField(_producerPriceController, 'Producer Price',
-                keyboardType: TextInputType.number),
-            _buildTextField(_salePriceController, 'Sale Price',
-                keyboardType: TextInputType.number),
-            _buildTextField(_descriptionController, 'Description'),
-            _buildTextField(_imageUrlController, 'Image URL'),
-            DropdownButtonFormField<String>(
-              value: selectedCategoryId,
-              onChanged: (value) {
-                setState(() {
-                  selectedCategoryId = value;
-                });
-              },
-              items: categories.map<DropdownMenuItem<String>>((category) {
-                return DropdownMenuItem<String>(
-                  value: category['_id'],
-                  child: Text(
-                    category['name'],
-                    style: GoogleFonts.poppins(),
+      body: Stack(
+        children: [
+          Form(
+            key: _formKey,
+            child: ListView(
+              padding: const EdgeInsets.all(20),
+              children: [
+                // Header Ilustrasi
+                Center(
+                  child: SvgPicture.asset(
+                    'public/add.svg',
+                    height: 200,
                   ),
-                );
-              }).toList(),
-              decoration: InputDecoration(
-                labelText: 'Category',
-                labelStyle: GoogleFonts.poppins(fontSize: 16),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8.0),
                 ),
-              ),
-            ),
-            const SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: addProduct,
-              style: ElevatedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(vertical: 16.0),
-                backgroundColor: const Color(0xFF10B981),
-                textStyle: GoogleFonts.poppins(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
+                const SizedBox(height: 20),
+
+                // Input Fields
+                _buildTextFormField(
+                  controller: _nameController,
+                  label: 'Nama Produk',
+                  icon: Icons.shopping_bag,
+                  validator: (value) =>
+                      value!.isEmpty ? 'Nama produk wajib diisi' : null,
                 ),
-              ),
-              child: const Text(
-                'Tambah Produk',
-                style: TextStyle(color: Colors.white),
-              ),
+                _buildTextFormField(
+                  controller: _stockController,
+                  label: 'Stok',
+                  icon: Icons.inventory,
+                  keyboardType: TextInputType.number,
+                  validator: (value) =>
+                      value!.isEmpty ? 'Stok wajib diisi' : null,
+                ),
+                _buildTextFormField(
+                  controller: _minStockController,
+                  label: 'Stok Minimal',
+                  icon: Icons.warning,
+                  keyboardType: TextInputType.number,
+                  validator: (value) =>
+                      value!.isEmpty ? 'Stok minimal wajib diisi' : null,
+                ),
+                _buildTextFormField(
+                  controller: _producerPriceController,
+                  label: 'Harga Produksi',
+                  icon: Icons.attach_money,
+                  keyboardType: TextInputType.number,
+                  validator: (value) =>
+                      value!.isEmpty ? 'Harga produksi wajib diisi' : null,
+                ),
+                _buildTextFormField(
+                  controller: _salePriceController,
+                  label: 'Harga Jual',
+                  icon: Icons.monetization_on,
+                  keyboardType: TextInputType.number,
+                  validator: (value) =>
+                      value!.isEmpty ? 'Harga jual wajib diisi' : null,
+                ),
+                _buildTextFormField(
+                  controller: _descriptionController,
+                  label: 'Deskripsi',
+                  icon: Icons.description,
+                  maxLines: 3,
+                ),
+                _buildTextFormField(
+                  controller: _imageUrlController,
+                  label: 'URL Gambar',
+                  icon: Icons.image,
+                ),
+
+                // Dropdown Kategori
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 10),
+                  child: DropdownButtonFormField<String>(
+                    value: selectedCategoryId,
+                    decoration: InputDecoration(
+                      prefixIcon: Icon(Icons.category,
+                          color: const Color(0xFF093C25).withOpacity(0.7)),
+                      labelText: 'Kategori',
+                      labelStyle: GoogleFonts.poppins(
+                        color: const Color(0xFF093C25).withOpacity(0.7),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(
+                            color: Color(0xFF1B9B5E), width: 2),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(
+                            color: const Color(0xFF093C25).withOpacity(0.3)),
+                      ),
+                    ),
+                    dropdownColor: Colors.white,
+                    items: categories.map<DropdownMenuItem<String>>((category) {
+                      return DropdownMenuItem<String>(
+                        value: category['_id'],
+                        child: Text(
+                          category['name'],
+                          style: GoogleFonts.poppins(
+                              color: const Color(0xFF093C25)),
+                        ),
+                      );
+                    }).toList(),
+                    onChanged: (value) {
+                      setState(() {
+                        selectedCategoryId = value;
+                      });
+                    },
+                    validator: (value) =>
+                        value == null ? 'Kategori wajib dipilih' : null,
+                  ),
+                ),
+                const SizedBox(height: 20),
+
+                // Tombol Tambah Produk
+                ElevatedButton(
+                  onPressed: _isLoading ? null : addProduct,
+                  style: ElevatedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 16.0),
+                    backgroundColor: const Color(0xFF1B9B5E),
+                    textStyle: GoogleFonts.poppins(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  child: _isLoading
+                      ? const CircularProgressIndicator(color: Colors.white)
+                      : const Text(
+                          'Tambah Produk',
+                          style: TextStyle(color: Colors.white),
+                        ),
+                ),
+              ],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
 
-  Widget _buildTextField(TextEditingController controller, String labelText,
-      {TextInputType keyboardType = TextInputType.text}) {
+  Widget _buildTextFormField({
+    required TextEditingController controller,
+    required String label,
+    IconData? icon,
+    TextInputType keyboardType = TextInputType.text,
+    int maxLines = 1,
+    String? Function(String?)? validator,
+  }) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12.0),
-      child: TextField(
+      child: TextFormField(
         controller: controller,
         keyboardType: keyboardType,
+        maxLines: maxLines,
         decoration: InputDecoration(
-          labelText: labelText,
-          labelStyle: GoogleFonts.poppins(fontSize: 16),
+          prefixIcon: icon != null
+              ? Icon(icon, color: const Color(0xFF093C25).withOpacity(0.7))
+              : null,
+          labelText: label,
+          labelStyle: GoogleFonts.poppins(
+            fontSize: 16,
+            color: const Color(0xFF093C25).withOpacity(0.7),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12.0),
+            borderSide:
+                const BorderSide(color: const Color(0xFF1B9B5E), width: 2),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12.0),
+            borderSide:
+                BorderSide(color: const Color(0xFF093C25).withOpacity(0.3)),
+          ),
           border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(8.0),
+            borderRadius: BorderRadius.circular(12.0),
           ),
           contentPadding:
               const EdgeInsets.symmetric(vertical: 12.0, horizontal: 16.0),
         ),
-        style: GoogleFonts.poppins(),
+        cursorColor: const Color(0xFF1B9B5E),
+        style: GoogleFonts.poppins(color: const Color(0xFF093C25)),
+        validator: validator,
       ),
     );
   }

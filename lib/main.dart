@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:minggu_4/pages/main_screen.dart';
 import 'package:minggu_4/pages/splash_screen.dart';
 import 'package:minggu_4/pages/intro_screen.dart';
 import 'package:minggu_4/pages/transaksi_screen.dart';
@@ -23,19 +24,24 @@ class MyApp extends StatelessWidget {
       home: const SplashScreenPage(), // Start with splash screen
       routes: {
         '/intro': (context) => const IntroScreen(),
+        '/product': (context) => const MainScreen(token: 'token'),
         '/transaksi': (context) => TransaksiScreen(
               token: 'your_token', // Replace with actual token
-              cart: {}, // Replace with actual cart data
+              cart: const {}, // Replace with actual cart data
               onCartUpdate: (updatedCart) {},
             ),
         '/cash': (context) => CashScreen(
-              items: [], // Replace with actual items
+              items: const [], // Replace with actual items
               totalCost: 0.0, // Replace with actual total cost
               paymentType: 'cash', // Replace with the appropriate payment type
               token: 'your_token', // Replace with actual token
               onPaymentComplete: (_) {},
             ),
-        '/success': (context) => SuccessScreen(),
+        '/success': (context) => const SuccessScreen(
+              token: '',
+              items: [],
+              totalCost: 0.0,
+            ),
       },
     );
   }

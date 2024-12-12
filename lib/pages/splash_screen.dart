@@ -16,7 +16,7 @@ class SplashScreen extends StatelessWidget {
               width:
                   300, // Adjust the width and height to fit the logo perfectly
               height: 300,
-              decoration: BoxDecoration(
+              decoration: const BoxDecoration(
                 image: DecorationImage(
                   image: AssetImage(
                       'public/hero.png'), // Replace with your image path
@@ -39,3 +39,4 @@ class SplashScreen extends StatelessWidget {
     );
   }
 }
+

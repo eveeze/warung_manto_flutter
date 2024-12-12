@@ -1,20 +1,19 @@
-// lib/pages/login_verify.dart
-
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:minggu_4/pages/main_screen.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:minggu_4/service/auth_service.dart';
 
 class LoginVerifyPage extends StatefulWidget {
   final String phone;
   final String password;
 
   const LoginVerifyPage({
-    Key? key,
+    super.key,
     required this.phone,
     required this.password,
-  }) : super(key: key);
+  });
 
   @override
   _LoginVerifyPageState createState() => _LoginVerifyPageState();
@@ -35,12 +34,18 @@ class _LoginVerifyPageState extends State<LoginVerifyPage> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: Text(isError ? 'Error' : 'Success'),
-          content: Text(message),
+          title: Text(
+            isError ? 'Error' : 'Success',
+            style: GoogleFonts.poppins(),
+          ),
+          content: Text(
+            message,
+            style: GoogleFonts.poppins(),
+          ),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
-              child: const Text('OK'),
+              child: Text('OK', style: GoogleFonts.poppins()),
             ),
           ],
         );
@@ -58,7 +63,7 @@ class _LoginVerifyPageState extends State<LoginVerifyPage> {
 
     try {
       final response = await http.post(
-        Uri.parse('http://10.0.2.2:3000/api/auth/verify-login-otp'),
+        Uri.parse('http://103.127.138.32/api/auth/verify-login-otp'),
         headers: {'Content-Type': 'application/json'},
         body: json.encode({
           'phone': widget.phone,
@@ -67,19 +72,27 @@ class _LoginVerifyPageState extends State<LoginVerifyPage> {
         }),
       );
 
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        String token = data['token'];
+      final responseBody = json.decode(response.body);
 
+      if (response.statusCode == 200) {
+        // Simpan token menggunakan AuthService
+        await AuthService.saveToken(responseBody['token']);
+
+        // Simpan data user
+        await AuthService.saveUserData({
+          'name': responseBody['name'],
+          'phone': widget.phone,
+        });
+
+        // Navigasi ke MainScreen
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
-            builder: (context) => MainScreen(token: token),
+            builder: (context) => MainScreen(token: responseBody['token']),
           ),
         );
       } else {
-        final error = json.decode(response.body);
-        showMessage(error['message'] ?? 'Verifikasi OTP gagal');
+        showMessage(responseBody['message'] ?? 'Verifikasi OTP gagal');
       }
     } catch (e) {
       showMessage('Terjadi kesalahan: $e');
@@ -93,7 +106,7 @@ class _LoginVerifyPageState extends State<LoginVerifyPage> {
 
     try {
       final response = await http.post(
-        Uri.parse('http://10.0.2.2:3000/api/auth/resend-login-otp'),
+        Uri.parse('http://103.127.138.32/api/auth/resend-login-otp'),
         headers: {'Content-Type': 'application/json'},
         body: json.encode({
           'phone': widget.phone,
@@ -101,11 +114,13 @@ class _LoginVerifyPageState extends State<LoginVerifyPage> {
         }),
       );
 
+      final responseBody = json.decode(response.body);
+
       if (response.statusCode == 200) {
-        showMessage("OTP berhasil dikirim ulang", isError: false);
+        showMessage(responseBody['message'] ?? "OTP berhasil dikirim ulang",
+            isError: false);
       } else {
-        final error = json.decode(response.body);
-        showMessage(error['message'] ?? 'Gagal mengirim ulang OTP');
+        showMessage(responseBody['message'] ?? 'Gagal mengirim ulang OTP');
       }
     } catch (e) {
       showMessage('Terjadi kesalahan: $e');

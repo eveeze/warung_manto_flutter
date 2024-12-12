@@ -78,7 +78,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
     try {
       final response = await http.post(
-        Uri.parse('http://10.0.2.2:3000/api/auth/login'),
+        Uri.parse('http://103.127.138.32/api/auth/login'),
         headers: {'Content-Type': 'application/json'},
         body: json.encode({
           'phone': formattedPhone,
@@ -144,7 +144,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               const SizedBox(height: 40),
               Center(
-                child: Container(
+                child: SizedBox(
                   width: 300,
                   height: 300,
                   child: Image.asset(
@@ -182,13 +182,14 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
                 child: TextField(
                   controller: phoneController,
-                  style: GoogleFonts.poppins(color: Color(0xFF000000)),
+                  style: GoogleFonts.poppins(color: const Color(0xFF000000)),
                   decoration: InputDecoration(
                     border: InputBorder.none,
-                    contentPadding:
-                        EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 12),
                     hintText: '628188280680',
-                    hintStyle: GoogleFonts.poppins(color: Color(0xFFB0A6A6)),
+                    hintStyle:
+                        GoogleFonts.poppins(color: const Color(0xFFB0A6A6)),
                   ),
                 ),
               ),
@@ -210,13 +211,14 @@ class _HomeScreenState extends State<HomeScreen> {
                 child: TextField(
                   controller: passwordController,
                   obscureText: true,
-                  style: GoogleFonts.poppins(color: Color(0xFF000000)),
+                  style: GoogleFonts.poppins(color: const Color(0xFF000000)),
                   decoration: InputDecoration(
                     border: InputBorder.none,
-                    contentPadding:
-                        EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 12),
                     hintText: 'Password',
-                    hintStyle: GoogleFonts.poppins(color: Color(0xFFB0A6A6)),
+                    hintStyle:
+                        GoogleFonts.poppins(color: const Color(0xFFB0A6A6)),
                   ),
                 ),
               ),
@@ -265,7 +267,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       child: Text(
                         'Daftarkan sekarang',
                         style: GoogleFonts.poppins(
-                          color: Color(0xFF00A86B),
+                          color: const Color(0xFF00A86B),
                           fontWeight: FontWeight.bold,
                         ),
                       ),

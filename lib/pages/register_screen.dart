@@ -66,7 +66,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
     try {
       final response = await http.post(
-        Uri.parse('http://10.0.2.2:3000/api/auth/register'),
+        Uri.parse('http://103.127.138.32/api/auth/register'),
         headers: {'Content-Type': 'application/json'},
         body: json.encode({
           'name': nameController.text,
@@ -267,7 +267,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
 class TextFieldContainer extends StatelessWidget {
   final Widget child;
-  const TextFieldContainer({Key? key, required this.child}) : super(key: key);
+  const TextFieldContainer({super.key, required this.child});
 
   @override
   Widget build(BuildContext context) {
