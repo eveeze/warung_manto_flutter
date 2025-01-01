@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:minggu_4/pages/home.dart';
+import 'package:minggu_4/pages/home_screen.dart';
 import 'package:minggu_4/pages/main_screen.dart';
 import 'package:minggu_4/pages/splash_screen.dart';
 import 'package:minggu_4/pages/intro_screen.dart';
 import 'package:minggu_4/pages/transaksi_screen.dart';
 import 'package:minggu_4/pages/cash_screen.dart';
 import 'package:minggu_4/pages/success_screen.dart';
+import 'package:minggu_4/pages/user_screen.dart';
 
 void main() {
   runApp(const MyApp());
@@ -25,6 +28,8 @@ class MyApp extends StatelessWidget {
       routes: {
         '/intro': (context) => const IntroScreen(),
         '/product': (context) => const MainScreen(token: 'token'),
+        '/home': (context) => const HomesScreen(token: 'token'),
+        '/user': (context) => const UserScreen(token: 'token'),
         '/transaksi': (context) => TransaksiScreen(
               token: 'your_token', // Replace with actual token
               cart: const {}, // Replace with actual cart data
@@ -42,6 +47,7 @@ class MyApp extends StatelessWidget {
               items: [],
               totalCost: 0.0,
             ),
+        '/login': (context) => const HomeScreen(),
       },
     );
   }

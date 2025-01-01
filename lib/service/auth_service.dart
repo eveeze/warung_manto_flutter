@@ -3,9 +3,10 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 
 class AuthService {
-  static const FlutterSecureStorage _storage = const FlutterSecureStorage();
+  static const FlutterSecureStorage _storage = FlutterSecureStorage();
   static const String _tokenKey = 'auth_token';
   static const String _userKey = 'user_data';
+  static const String _baseUrl = 'http://103.127.138.32/api/auth';
 
   // Menyimpan token
   static Future<void> saveToken(String token) async {
@@ -75,6 +76,96 @@ class AuthService {
       return response.statusCode == 200;
     } catch (e) {
       return false;
+    }
+  }
+
+  static Future<bool> sendForgotPasswordOTP(String phone) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$_baseUrl/forgot-password'),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({'phone': phone}),
+      );
+
+      return response.statusCode == 200;
+    } catch (e) {
+      print('Error sending forgot password OTP: $e');
+      return false;
+    }
+  }
+
+  static Future<bool> verifyResetPasswordOTP({
+    required String phone,
+    required String otp,
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$_baseUrl/verify-reset-password-otp'),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({
+          'phone': phone,
+          'otp': otp,
+        }),
+      );
+
+      return response.statusCode == 200;
+    } catch (e) {
+      print('Error verifying reset password OTP: $e');
+      return false;
+    }
+  }
+
+  static Future<bool> resendResetPasswordOTP(String phone) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$_baseUrl/resend-reset-password-otp'),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({'phone': phone}),
+      );
+
+      return response.statusCode == 200;
+    } catch (e) {
+      print('Error resending reset password OTP: $e');
+      return false;
+    }
+  }
+
+  static Future<bool> resetPassword({
+    required String phone,
+    required String newPassword,
+    required String confirmPassword,
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$_baseUrl/reset-password'),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({
+          'phone': phone,
+          'newPassword': newPassword,
+          'confirmPassword': confirmPassword,
+        }),
+      );
+
+      return response.statusCode == 200;
+    } catch (e) {
+      print('Error resetting password: $e');
+      return false;
+    }
+  }
+
+  // Metode tambahan untuk menangani error lebih detail
+  static String getErrorMessage(int statusCode) {
+    switch (statusCode) {
+      case 400:
+        return 'Invalid request. Please check your input.';
+      case 404:
+        return 'User not found.';
+      case 403:
+        return 'Access denied.';
+      case 500:
+        return 'Server error. Please try again later.';
+      default:
+        return 'An unexpected error occurred.';
     }
   }
 }

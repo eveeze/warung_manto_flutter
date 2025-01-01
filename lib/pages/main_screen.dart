@@ -1,53 +1,124 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:minggu_4/components/bottom_navigation_bar.dart';
+import 'package:minggu_4/pages/crud_transaction_screen.dart';
 import 'dart:convert';
 import 'package:minggu_4/pages/edit_screen.dart';
 import 'package:minggu_4/pages/add_screen.dart';
 import 'package:minggu_4/pages/detail_screen.dart';
-import 'package:minggu_4/pages/home_screen.dart';
+import 'package:minggu_4/pages/home.dart';
 import 'package:minggu_4/pages/transaksi_screen.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:minggu_4/service/auth_service.dart';
+import 'package:minggu_4/pages/user_screen.dart';
 
 class MainScreen extends StatefulWidget {
   final String token;
-
-  const MainScreen({
-    super.key,
-    required this.token,
-  });
-
+  const MainScreen({super.key, required this.token});
   @override
   _MainScreenState createState() => _MainScreenState();
 }
 
-class _MainScreenState extends State<MainScreen> {
+class _MainScreenState extends State<MainScreen>
+    with SingleTickerProviderStateMixin {
+  int _currentIndex = 1;
+  late List<Widget> _screens;
   String? userName;
   List<dynamic> products = [];
   List<dynamic> categories = [];
   Map<String, int> cart = {};
   bool isLoading = true;
-
-  final TextEditingController _nameController = TextEditingController();
-  final TextEditingController _stockController = TextEditingController();
-  final TextEditingController _minStockController = TextEditingController();
-  final TextEditingController _producerPriceController =
-      TextEditingController();
-  final TextEditingController _salePriceController = TextEditingController();
-  final TextEditingController _descriptionController = TextEditingController();
-  final TextEditingController _imageUrlController = TextEditingController();
-  String? selectedCategory;
+  late AnimationController _fadeController;
+  late Animation<double> _fadeAnimation;
+  final ScrollController _scrollController = ScrollController();
+  int _currentPage = 1;
+  int _totalPages = 1;
+  bool _isLoadingMore = false;
+  bool _hasMoreData = true;
 
   final TextEditingController _searchController = TextEditingController();
+
+  String? selectedCategory;
   String? _selectedCategory;
   RangeValues _priceRange = const RangeValues(0, 1000000);
   RangeValues _stockRange = const RangeValues(0, 1000);
+
   @override
   void initState() {
     super.initState();
-    fetchUserData();
-    fetchProducts();
-    fetchCategories();
+    _scrollController.addListener(_onScroll);
+
+    _fadeController = AnimationController(
+      duration: const Duration(milliseconds: 500),
+      vsync: this,
+    );
+
+    // Then create the animation using the controller
+    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+        CurvedAnimation(parent: _fadeController, curve: Curves.easeInOut));
+
+    _screens = [
+      HomesScreen(token: widget.token),
+      MainScreen(token: widget.token),
+      CrudTransactionScreen(token: widget.token),
+      UserScreen(token: widget.token)
+    ];
+    _initializeScreen();
+  }
+
+  void _onScroll() {
+    if (_scrollController.position.pixels ==
+        _scrollController.position.maxScrollExtent) {
+      _loadMoreProducts();
+    }
+  }
+
+  Future<void> _loadMoreProducts() async {
+    if (_isLoadingMore || !_hasMoreData) return;
+
+    setState(() {
+      _isLoadingMore = true;
+    });
+
+    try {
+      final response = await http.get(
+        Uri.parse(
+            'http://103.127.138.32/api/products?page=${_currentPage + 1}'),
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        final newProducts = data['products'] as List;
+
+        setState(() {
+          products.addAll(newProducts);
+          _currentPage++;
+          _totalPages = data['pagination']['totalPages'];
+          _hasMoreData = _currentPage < _totalPages;
+          _isLoadingMore = false;
+        });
+      }
+    } catch (error) {
+      setState(() {
+        _isLoadingMore = false;
+      });
+      print('Error loading more products: $error');
+    }
+  }
+
+  Future<void> _initializeScreen() async {
+    await Future.wait([
+      fetchUserData(),
+      fetchProducts(),
+      fetchCategories(),
+    ]);
+    _fadeController.forward();
+  }
+
+  @override
+  void dispose() {
+    _fadeController.dispose();
+    _searchController.dispose();
+    super.dispose();
   }
 
   Future<void> fetchUserData() async {
@@ -79,15 +150,10 @@ class _MainScreenState extends State<MainScreen> {
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-
-        // Assuming `data` is the array itself, not wrapped inside another object
         if (data is List) {
-          // Ensure that `data` is a list
           setState(() {
             categories = data;
           });
-        } else {
-          print('Unexpected data format: expected a list of categories');
         }
       }
     } catch (error) {
@@ -102,40 +168,28 @@ class _MainScreenState extends State<MainScreen> {
     double? maxPrice,
     int? minStock,
     int? maxStock,
+    int page = 1,
   }) async {
     setState(() {
       isLoading = true;
+      _currentPage = page;
     });
 
     try {
-      Map<String, String> queryParams = {};
-
-      if (search != null && search.isNotEmpty) {
-        queryParams['search'] = search;
-      }
-
+      Map<String, String> queryParams = {
+        'page': page.toString(),
+        'limit': '10', // Adjust limit as needed
+      };
+      if (search != null && search.isNotEmpty) queryParams['search'] = search;
       if (category != null && category.isNotEmpty) {
         queryParams['category'] = category;
       }
-
-      if (minPrice != null) {
-        queryParams['minSalePrice'] = minPrice.toString();
-      }
-
-      if (maxPrice != null) {
-        queryParams['maxSalePrice'] = maxPrice.toString();
-      }
-
-      if (minStock != null) {
-        queryParams['minStock'] = minStock.toString();
-      }
-
-      if (maxStock != null) {
-        queryParams['maxStock'] = maxStock.toString();
-      }
+      if (minPrice != null) queryParams['minSalePrice'] = minPrice.toString();
+      if (maxPrice != null) queryParams['maxSalePrice'] = maxPrice.toString();
+      if (minStock != null) queryParams['minStock'] = minStock.toString();
+      if (maxStock != null) queryParams['maxStock'] = maxStock.toString();
 
       String queryString = Uri(queryParameters: queryParams).query;
-
       final response = await http.get(
         Uri.parse('http://103.127.138.32/api/products?$queryString'),
       );
@@ -144,6 +198,8 @@ class _MainScreenState extends State<MainScreen> {
         final data = json.decode(response.body);
         setState(() {
           products = data['products'];
+          _totalPages = data['pagination']['totalPages'];
+          _hasMoreData = data['pagination']['hasNextPage'];
           isLoading = false;
         });
       }
@@ -155,61 +211,65 @@ class _MainScreenState extends State<MainScreen> {
     }
   }
 
-  Future<void> addProduct() async {
-    try {
-      final response = await http.post(
-        Uri.parse('http://103.127.138.32/api/products'),
-        headers: {'Content-Type': 'application/json'},
-        body: json.encode({
-          'name': _nameController.text,
-          'stock': int.parse(_stockController.text),
-          'minStock': int.parse(_minStockController.text),
-          'producerPrice': double.parse(_producerPriceController.text),
-          'salePrice': double.parse(_salePriceController.text),
-          'description': _descriptionController.text,
-          'imageUrl': _imageUrlController.text,
-          'category': selectedCategory,
-        }),
-      );
+  Widget _buildPaginationControls() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 16),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          // Previous Page Button
+          IconButton(
+            icon: const Icon(Icons.arrow_back_ios),
+            onPressed: _currentPage > 1
+                ? () => fetchProducts(page: _currentPage - 1)
+                : null,
+          ),
 
-      if (response.statusCode == 201) {
-        fetchProducts();
-        Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Product added successfully')),
-        );
-      }
-    } catch (error) {
-      print('Error adding product: $error');
-    }
+          // Current Page Indicator
+          Text(
+            'Page $_currentPage of $_totalPages',
+            style: GoogleFonts.poppins(
+              fontWeight: FontWeight.w600,
+              fontSize: 16,
+            ),
+          ),
+
+          // Next Page Button
+          IconButton(
+            icon: const Icon(Icons.arrow_forward_ios),
+            onPressed: _currentPage < _totalPages
+                ? () => fetchProducts(page: _currentPage + 1)
+                : null,
+          ),
+        ],
+      ),
+    );
   }
 
-  Future<void> updateProduct(String id) async {
-    try {
-      final response = await http.put(
-        Uri.parse('http://103.127.138.32/api/products/$id'),
-        headers: {'Content-Type': 'application/json'},
-        body: json.encode({
-          'name': _nameController.text,
-          'stock': int.parse(_stockController.text),
-          'minStock': int.parse(_minStockController.text),
-          'producerPrice': double.parse(_producerPriceController.text),
-          'salePrice': double.parse(_salePriceController.text),
-          'description': _descriptionController.text,
-          'imageUrl': _imageUrlController.text,
-          'category': selectedCategory,
-        }),
-      );
-
-      if (response.statusCode == 200) {
-        fetchProducts();
-        Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Product updated successfully')),
+  void _onBottomNavTap(int index) {
+    if (index != _currentIndex) {
+      if (index == 0) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+              builder: (context) => HomesScreen(token: widget.token)),
+        );
+      } else if (index == 2) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+              builder: (context) => CrudTransactionScreen(token: widget.token)),
+        );
+      } else if (index == 3) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+              builder: (context) => UserScreen(token: widget.token)),
         );
       }
-    } catch (error) {
-      print('Error updating product: $error');
+      setState(() {
+        _currentIndex = index;
+      });
     }
   }
 
@@ -222,7 +282,13 @@ class _MainScreenState extends State<MainScreen> {
       if (response.statusCode == 200) {
         fetchProducts();
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Product deleted successfully')),
+          SnackBar(
+            content: Text(
+              'Produk berhasil dihapus',
+              style: GoogleFonts.poppins(),
+            ),
+            backgroundColor: Colors.green,
+          ),
         );
       }
     } catch (error) {
@@ -234,40 +300,29 @@ class _MainScreenState extends State<MainScreen> {
     setState(() {
       cart[productId] = (cart[productId] ?? 0) + 1;
     });
-  }
-
-  Future<void> logout() async {
-    try {
-      await AuthService.logout(widget.token);
-      // Navigate back to the login page
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-            builder: (context) =>
-                const HomeScreen()), // Replace with your login page
-      );
-    } catch (e) {
-      // Handle error (e.g., show a message)
-      print('Logout error: $e');
-    }
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          'Produk ditambahkan ke keranjang',
+          style: GoogleFonts.poppins(),
+        ),
+        backgroundColor: const Color(0xFF093C25),
+      ),
+    );
   }
 
   void _showFilterBottomSheet() {
     showModalBottomSheet(
       context: context,
       backgroundColor: const Color(0xFF093C25),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
+      ),
       builder: (BuildContext context) {
         return StatefulBuilder(
           builder: (context, setState) {
             return Container(
-              padding: const EdgeInsets.all(16),
-              decoration: const BoxDecoration(
-                color: Color(0xFF093C25),
-                borderRadius: BorderRadius.only(
-                  topLeft: Radius.circular(20),
-                  topRight: Radius.circular(20),
-                ),
-              ),
+              padding: const EdgeInsets.all(20),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
@@ -279,11 +334,11 @@ class _MainScreenState extends State<MainScreen> {
                         'Filter Produk',
                         style: GoogleFonts.poppins(
                           fontWeight: FontWeight.bold,
-                          fontSize: 18,
+                          fontSize: 20,
                           color: Colors.white,
                         ),
                       ),
-                      TextButton(
+                      TextButton.icon(
                         onPressed: () {
                           setState(() {
                             _selectedCategory = null;
@@ -291,47 +346,63 @@ class _MainScreenState extends State<MainScreen> {
                             _stockRange = const RangeValues(0, 1000);
                           });
                         },
-                        child: Text(
-                          'Reset Filter',
+                        icon: const Icon(Icons.refresh, color: Colors.red),
+                        label: Text(
+                          'Reset',
                           style: GoogleFonts.poppins(color: Colors.red),
                         ),
                       ),
                     ],
                   ),
-                  DropdownButton<String>(
-                    dropdownColor: const Color(0xFF093C25),
-                    hint: Text(
-                      'Pilih Kategori',
-                      style: GoogleFonts.poppins(color: Colors.white),
+                  const SizedBox(height: 20),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(12),
                     ),
-                    value: _selectedCategory,
-                    style: GoogleFonts.poppins(color: Colors.white),
-                    iconEnabledColor: Colors.white,
-                    items: [
-                      const DropdownMenuItem<String>(
-                        value: null,
-                        child: Text('Semua Kategori'),
+                    child: DropdownButton<String>(
+                      isExpanded: true,
+                      dropdownColor: const Color(0xFF093C25),
+                      hint: Text(
+                        'Pilih Kategori',
+                        style: GoogleFonts.poppins(color: Colors.white70),
                       ),
-                      ...categories.map((category) {
-                        return DropdownMenuItem<String>(
-                          value: category['_id'],
-                          child: Text(category['name']),
-                        );
-                      }),
-                    ],
-                    onChanged: (value) {
-                      setState(() {
-                        _selectedCategory = value;
-                      });
-                    },
+                      value: _selectedCategory,
+                      style: GoogleFonts.poppins(color: Colors.white),
+                      icon: const Icon(Icons.arrow_drop_down,
+                          color: Colors.white),
+                      underline: const SizedBox(),
+                      items: [
+                        const DropdownMenuItem<String>(
+                          value: null,
+                          child: Text('Semua Kategori'),
+                        ),
+                        ...categories.map((category) {
+                          return DropdownMenuItem<String>(
+                            value: category['_id'],
+                            child: Text(category['name']),
+                          );
+                        }),
+                      ],
+                      onChanged: (value) {
+                        setState(() {
+                          _selectedCategory = value;
+                        });
+                      },
+                    ),
                   ),
+                  const SizedBox(height: 20),
                   Text(
                     'Rentang Harga',
-                    style: GoogleFonts.poppins(color: Colors.white),
+                    style: GoogleFonts.poppins(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
                   RangeSlider(
                     activeColor: Colors.white,
-                    inactiveColor: Colors.white.withOpacity(0.3),
+                    inactiveColor: Colors.white24,
                     values: _priceRange,
                     min: 0,
                     max: 1000000,
@@ -346,13 +417,17 @@ class _MainScreenState extends State<MainScreen> {
                       });
                     },
                   ),
+                  const SizedBox(height: 20),
                   Text(
                     'Rentang Stok',
-                    style: GoogleFonts.poppins(color: Colors.white),
+                    style: GoogleFonts.poppins(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
                   RangeSlider(
                     activeColor: Colors.white,
-                    inactiveColor: Colors.white.withOpacity(0.3),
+                    inactiveColor: Colors.white24,
                     values: _stockRange,
                     min: 0,
                     max: 1000,
@@ -367,25 +442,36 @@ class _MainScreenState extends State<MainScreen> {
                       });
                     },
                   ),
-                  ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.white,
-                      foregroundColor: const Color(0xFF093C25),
-                    ),
-                    onPressed: () {
-                      fetchProducts(
-                        search: _searchController.text,
-                        category: _selectedCategory,
-                        minPrice: _priceRange.start,
-                        maxPrice: _priceRange.end,
-                        minStock: _stockRange.start.toInt(),
-                        maxStock: _stockRange.end.toInt(),
-                      );
-                      Navigator.pop(context);
-                    },
-                    child: Text(
-                      'Terapkan Filter',
-                      style: GoogleFonts.poppins(),
+                  const SizedBox(height: 20),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.white,
+                        foregroundColor: const Color(0xFF093C25),
+                        padding: const EdgeInsets.symmetric(vertical: 15),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      onPressed: () {
+                        fetchProducts(
+                          search: _searchController.text,
+                          category: _selectedCategory,
+                          minPrice: _priceRange.start,
+                          maxPrice: _priceRange.end,
+                          minStock: _stockRange.start.toInt(),
+                          maxStock: _stockRange.end.toInt(),
+                        );
+                        Navigator.pop(context);
+                      },
+                      child: Text(
+                        'Terapkan Filter',
+                        style: GoogleFonts.poppins(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
+                      ),
                     ),
                   ),
                 ],
@@ -403,7 +489,7 @@ class _MainScreenState extends State<MainScreen> {
       MaterialPageRoute(
         builder: (context) => EditScreen(
           token: widget.token,
-          productId: product['_id'] ?? '', // Optional productId for new product
+          productId: product['_id'],
           onSave: fetchProducts,
         ),
       ),
@@ -416,7 +502,7 @@ class _MainScreenState extends State<MainScreen> {
       MaterialPageRoute(
         builder: (context) => AddScreen(
           token: widget.token,
-          onSave: fetchProducts, // Callback to refresh product list
+          onSave: fetchProducts,
         ),
       ),
     );
@@ -442,264 +528,364 @@ class _MainScreenState extends State<MainScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: AppBar(
-        automaticallyImplyLeading: false,
-        elevation: 0,
-        backgroundColor: const Color(0xFF093C25),
-        titleSpacing: 20,
-        title: Text(
-          'Kelola Produk',
-          style: GoogleFonts.poppins(
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
-          ),
+        backgroundColor: Colors.grey[50],
+        appBar: _buildAppBar(),
+        bottomNavigationBar: BottomNavBar(
+          currentIndex: _currentIndex,
+          onTap: _onBottomNavTap,
         ),
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(70),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            child: Container(
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.2),
-                borderRadius: BorderRadius.circular(20),
+        body: Column(
+          children: [
+            Expanded(
+              child: _buildBody(),
+            ),
+            if (!isLoading) _buildPaginationControls(),
+            if (_isLoadingMore)
+              const LinearProgressIndicator(
+                backgroundColor: Color(0xFF093C25),
               ),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: TextField(
-                      controller: _searchController,
-                      style: GoogleFonts.poppins(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w500,
-                      ),
-                      decoration: InputDecoration(
-                        contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 16, vertical: 12),
-                        hintText: 'Cari produk',
-                        hintStyle: GoogleFonts.poppins(
-                          color: Colors.white70,
-                          letterSpacing: 1.1,
-                        ),
-                        border: InputBorder.none,
-                        prefixIcon:
-                            const Icon(Icons.search, color: Colors.white),
-                        suffixIcon: _searchController.text.isNotEmpty
-                            ? IconButton(
-                                icon: const Icon(Icons.clear,
-                                    color: Colors.white),
-                                onPressed: () {
-                                  _searchController.clear();
-                                  fetchProducts();
-                                },
-                              )
-                            : null,
-                      ),
-                      onChanged: (value) {
-                        fetchProducts(search: value);
-                      },
-                    ),
+          ],
+        ));
+  }
+
+  PreferredSizeWidget _buildAppBar() {
+    return AppBar(
+      automaticallyImplyLeading: false,
+      elevation: 0,
+      backgroundColor: const Color(0xFF093C25),
+      titleSpacing: 20,
+      title: Text(
+        'Kelola Produk',
+        style: GoogleFonts.poppins(
+          fontWeight: FontWeight.bold,
+          color: Colors.white,
+          fontSize: 24,
+        ),
+      ),
+      bottom: PreferredSize(
+        preferredSize: const Size.fromHeight(80),
+        child: _buildSearchBar(),
+      ),
+      actions: _buildAppBarActions(),
+    );
+  }
+
+  Widget _buildSearchBar() {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 15),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.15),
+        borderRadius: BorderRadius.circular(25),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 10,
+            offset: const Offset(0, 5),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.all(4.0),
+              child: TextField(
+                controller: _searchController,
+                style: GoogleFonts.poppins(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w500,
+                ),
+                decoration: InputDecoration(
+                  hintText: 'Cari produk...',
+                  hintStyle: GoogleFonts.poppins(
+                    color: Colors.white70,
+                    letterSpacing: 0.5,
                   ),
-                  Container(
-                    margin: const EdgeInsets.only(right: 8),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.3),
-                      shape: BoxShape.circle,
-                    ),
-                    child: IconButton(
-                      icon: const Icon(
-                        Icons.filter_list,
-                        color: Colors.white,
-                      ),
-                      onPressed: _showFilterBottomSheet,
-                    ),
-                  ),
-                ],
+                  border: InputBorder.none,
+                  prefixIcon: const Icon(Icons.search, color: Colors.white70),
+                  suffixIcon: _buildSearchClearButton(),
+                ),
+                onChanged: (value) => fetchProducts(search: value),
               ),
             ),
           ),
+          _buildFilterButton(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSearchClearButton() {
+    return _searchController.text.isNotEmpty
+        ? AnimatedOpacity(
+            opacity: 1.0,
+            duration: const Duration(milliseconds: 200),
+            child: IconButton(
+              icon: const Icon(Icons.clear, color: Colors.white70),
+              onPressed: () {
+                _searchController.clear();
+                fetchProducts();
+              },
+            ),
+          )
+        : const SizedBox.shrink();
+  }
+
+  Widget _buildFilterButton() {
+    return Container(
+      margin: const EdgeInsets.only(right: 8),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.2),
+        shape: BoxShape.circle,
+      ),
+      child: IconButton(
+        icon: const Icon(Icons.filter_list, color: Colors.white),
+        onPressed: _showFilterBottomSheet,
+      ),
+    );
+  }
+
+  List<Widget> _buildAppBarActions() {
+    return [
+      IconButton(
+        icon:
+            const Icon(Icons.add_circle_outline, color: Colors.white, size: 28),
+        onPressed: navigateToAddScreen,
+      ),
+      Stack(
+        alignment: Alignment.topRight,
+        children: [
+          IconButton(
+            icon: const Icon(Icons.shopping_cart_outlined,
+                color: Colors.white, size: 28),
+            onPressed: navigateToTransactionScreen,
+          ),
+          if (cart.isNotEmpty) _buildCartBadge(),
+        ],
+      ),
+    ];
+  }
+
+  Widget _buildCartBadge() {
+    return Container(
+      padding: const EdgeInsets.all(6),
+      decoration: BoxDecoration(
+        color: Colors.red,
+        shape: BoxShape.circle,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.2),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Text(
+        cart.values.reduce((a, b) => a + b).toString(),
+        style: GoogleFonts.poppins(
+          color: Colors.white,
+          fontSize: 10,
+          fontWeight: FontWeight.bold,
         ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.logout, color: Colors.white), // Logout icon
-            onPressed: logout, // Call logout method
+      ),
+    );
+  }
+
+  Widget _buildBody() {
+    if (isLoading) {
+      return const Center(
+        child: CircularProgressIndicator(
+          valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF093C25)),
+        ),
+      );
+    }
+
+    if (products.isEmpty) {
+      return _buildEmptyState();
+    }
+
+    return FadeTransition(
+      opacity: _fadeAnimation,
+      child: GridView.builder(
+        padding: const EdgeInsets.all(16),
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 2,
+          childAspectRatio: 0.65,
+          crossAxisSpacing: 16,
+          mainAxisSpacing: 16,
+        ),
+        itemCount: products.length,
+        itemBuilder: (context, index) => _buildProductCard(products[index]),
+      ),
+    );
+  }
+
+  Widget _buildEmptyState() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.inventory_2_outlined,
+            size: 120,
+            color: Colors.grey[300],
           ),
-          IconButton(
-            icon: const Icon(Icons.add, color: Colors.white),
-            onPressed: () => navigateToAddScreen(),
+          const SizedBox(height: 24),
+          Text(
+            'Tidak ada produk ditemukan',
+            style: GoogleFonts.poppins(
+              color: Colors.grey[600],
+              fontSize: 20,
+              fontWeight: FontWeight.w500,
+            ),
           ),
-          Stack(
-            alignment: Alignment.topRight,
+          const SizedBox(height: 8),
+          Text(
+            'Coba ubah filter pencarian Anda',
+            style: GoogleFonts.poppins(
+              color: Colors.grey[400],
+              fontSize: 16,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildProductCard(Map<String, dynamic> product) {
+    return Hero(
+      tag: 'product-${product['_id']}',
+      child: Material(
+        elevation: 4,
+        shadowColor: Colors.black26,
+        borderRadius: BorderRadius.circular(20),
+        child: InkWell(
+          onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => DetailScreen(product: product),
+            ),
+          ),
+          borderRadius: BorderRadius.circular(20),
+          child: Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildProductImage(product),
+                _buildProductInfo(product),
+                _buildProductActions(product),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildProductImage(Map<String, dynamic> product) {
+    return Container(
+      height: 140,
+      decoration: BoxDecoration(
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+        image: DecorationImage(
+          image: NetworkImage(
+              product['imageUrl'] ?? 'https://via.placeholder.com/150'),
+          fit: BoxFit.cover,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildProductInfo(Map<String, dynamic> product) {
+    return Padding(
+      padding: const EdgeInsets.all(12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            product['name'],
+            style: GoogleFonts.poppins(
+              fontWeight: FontWeight.bold,
+              fontSize: 16,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Rp${product['salePrice'].toString()}',
+            style: GoogleFonts.poppins(
+              color: const Color(0xFF093C25),
+              fontWeight: FontWeight.w600,
+              fontSize: 14,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Row(
             children: [
-              IconButton(
-                icon: const Icon(Icons.shopping_cart, color: Colors.white),
-                onPressed: () => navigateToTransactionScreen(),
+              Icon(
+                Icons.inventory_2_outlined,
+                size: 16,
+                color: Colors.grey[600],
               ),
-              if (cart.isNotEmpty)
-                Positioned(
-                  top: 5,
-                  right: 5,
-                  child: Container(
-                    padding: const EdgeInsets.all(4),
-                    decoration: const BoxDecoration(
-                      color: Colors.red,
-                      shape: BoxShape.circle,
-                    ),
-                    child: Text(
-                      cart.values.reduce((a, b) => a + b).toString(),
-                      style: GoogleFonts.poppins(
-                        color: Colors.white,
-                        fontSize: 10,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
+              const SizedBox(width: 4),
+              Text(
+                'Stok: ${product['stock']}',
+                style: GoogleFonts.poppins(
+                  fontSize: 12,
+                  color: Colors.grey[600],
                 ),
+              ),
             ],
           ),
         ],
       ),
-      body: isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : products.isEmpty
-              ? Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        Icons.shopping_basket,
-                        size: 100,
-                        color: Colors.grey[300],
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        'Tidak ada produk ditemukan',
-                        style: GoogleFonts.poppins(
-                          color: Colors.grey,
-                          fontSize: 18,
-                        ),
-                      ),
-                    ],
-                  ),
-                )
-              : GridView.builder(
-                  padding: const EdgeInsets.all(12),
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 2,
-                    childAspectRatio: 0.7,
-                    crossAxisSpacing: 15,
-                    mainAxisSpacing: 15,
-                  ),
-                  itemCount: products.length,
-                  itemBuilder: (context, index) {
-                    final product = products[index];
-                    return GestureDetector(
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) =>
-                                DetailScreen(product: product),
-                          ),
-                        );
-                      },
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(15),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.grey.withOpacity(0.2),
-                              spreadRadius: 2,
-                              blurRadius: 5,
-                              offset: const Offset(0, 3),
-                            ),
-                          ],
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Expanded(
-                              child: Container(
-                                width: double.infinity,
-                                decoration: BoxDecoration(
-                                  borderRadius: const BorderRadius.vertical(
-                                    top: Radius.circular(15),
-                                  ),
-                                  image: DecorationImage(
-                                    image: NetworkImage(product['imageUrl'] ??
-                                        'https://via.placeholder.com/150'),
-                                    fit: BoxFit.cover,
-                                  ),
-                                ),
-                              ),
-                            ),
-                            Padding(
-                              padding: const EdgeInsets.all(10),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    product['name'],
-                                    style: GoogleFonts.poppins(
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 14,
-                                    ),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    'Rp${product['salePrice']}',
-                                    style: GoogleFonts.poppins(
-                                      color: Colors.green,
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 12,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    'Stok: ${product['stock']}',
-                                    style: GoogleFonts.poppins(
-                                      fontSize: 12,
-                                      color: Colors.grey,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 8),
-                                  Row(
-                                    mainAxisAlignment:
-                                        MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      IconButton(
-                                        icon: const Icon(Icons.edit,
-                                            color: Colors.blue, size: 20),
-                                        onPressed: () =>
-                                            navigateToEditScreen(product),
-                                      ),
-                                      IconButton(
-                                        icon: const Icon(Icons.delete,
-                                            color: Colors.red, size: 20),
-                                        onPressed: () =>
-                                            deleteProduct(product['_id']),
-                                      ),
-                                      if (product['status'] == 'active')
-                                        IconButton(
-                                          icon: const Icon(Icons.add_circle,
-                                              color: Colors.green, size: 20),
-                                          onPressed: () =>
-                                              addToCart(product['_id']),
-                                        ),
-                                    ],
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    );
-                  },
-                ),
+    );
+  }
+
+  Widget _buildProductActions(Map<String, dynamic> product) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+      children: [
+        _buildActionButton(
+          icon: Icons.edit_outlined,
+          color: Colors.blue,
+          onPressed: () => navigateToEditScreen(product),
+        ),
+        _buildActionButton(
+          icon: Icons.delete_outline,
+          color: Colors.red,
+          onPressed: () => deleteProduct(product['_id']),
+        ),
+        if (product['status'] == 'active')
+          _buildActionButton(
+            icon: Icons.add_shopping_cart_outlined,
+            color: const Color(0xFF093C25),
+            onPressed: () => addToCart(product['_id']),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildActionButton({
+    required IconData icon,
+    required Color color,
+    required VoidCallback onPressed,
+  }) {
+    return Container(
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: IconButton(
+        icon: Icon(icon, color: color, size: 20),
+        onPressed: onPressed,
+        splashRadius: 24,
+      ),
     );
   }
 }

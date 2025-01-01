@@ -310,7 +310,7 @@ class _AddScreenState extends State<AddScreen> {
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12.0),
             borderSide:
-                const BorderSide(color: const Color(0xFF1B9B5E), width: 2),
+                const BorderSide(color: Color(0xFF1B9B5E), width: 2),
           ),
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12.0),

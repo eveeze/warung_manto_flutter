@@ -1,19 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
-import 'package:minggu_4/pages/main_screen.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:minggu_4/service/auth_service.dart';
+import 'package:minggu_4/pages/home.dart';
 
 class LoginVerifyPage extends StatefulWidget {
   final String phone;
   final String password;
-
-  const LoginVerifyPage({
-    super.key,
-    required this.phone,
-    required this.password,
-  });
+  final String name;
+  const LoginVerifyPage(
+      {super.key,
+      required this.phone,
+      required this.password,
+      required this.name});
 
   @override
   _LoginVerifyPageState createState() => _LoginVerifyPageState();
@@ -88,7 +88,7 @@ class _LoginVerifyPageState extends State<LoginVerifyPage> {
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
-            builder: (context) => MainScreen(token: responseBody['token']),
+            builder: (context) => HomesScreen(token: responseBody['token']),
           ),
         );
       } else {

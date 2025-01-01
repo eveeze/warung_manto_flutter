@@ -1,6 +1,7 @@
 // lib/pages/home_screen.dart
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:minggu_4/pages/forgot_password_screen.dart';
 import 'package:minggu_4/pages/login_verify.dart';
 import 'dart:convert';
 import 'package:minggu_4/pages/register_screen.dart';
@@ -51,14 +52,22 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  void showBanMessage(DateTime lockUntil) {
-    Duration remaining = lockUntil.difference(DateTime.now());
-    String minutes = remaining.inMinutes.toString();
+  void showBanMessage(String lockUntilStr) {
+    try {
+      DateTime lockUntil = DateTime.parse(lockUntilStr);
+      Duration remaining = lockUntil.difference(DateTime.now());
+      String minutes = remaining.inMinutes.toString();
 
-    showMessage(
-      'Akun Anda dibanned sementara selama 15 menit. Sisa waktu: $minutes menit.',
-      isError: true,
-    );
+      showMessage(
+        'Akun Anda dibanned sementara selama 15 menit. Sisa waktu: $minutes menit.',
+        isError: true,
+      );
+    } catch (e) {
+      showMessage(
+        'Akun Anda dibanned sementara selama 15 menit.',
+        isError: true,
+      );
+    }
   }
 
   Future<void> login() async {
@@ -86,29 +95,40 @@ class _HomeScreenState extends State<HomeScreen> {
         }),
       );
 
-      if (response.statusCode == 200) {
-        json.decode(response.body);
+      final responseData = json.decode(response.body);
 
+      if (response.statusCode == 200) {
+        // Login berhasil, lanjutkan ke halaman verifikasi
+        String? name = responseData['name'] as String?;
         Navigator.push(
           context,
           MaterialPageRoute(
             builder: (context) => LoginVerifyPage(
               phone: formattedPhone,
               password: passwordController.text,
+              name: name ?? '',
             ),
           ),
         );
       } else if (response.statusCode == 403) {
-        final error = json.decode(response.body);
-        if (error['message'].contains('banned')) {
-          DateTime lockUntil = DateTime.parse(error['lockUntil']);
-          showBanMessage(lockUntil);
+        // Tangani kasus ban
+        String message = responseData['message']?.toString() ?? 'Login gagal';
+
+        // Cek apakah pesan mengandung informasi waktu ban
+        if (message.contains('banned until')) {
+          // Ekstrak waktu ban jika tersedia
+          try {
+            String banTime = message.split('until ')[1];
+            showBanMessage(banTime);
+          } catch (e) {
+            showMessage(message);
+          }
         } else {
-          showMessage(error['message'] ?? 'Login gagal');
+          showMessage(message);
         }
       } else {
-        final error = json.decode(response.body);
-        showMessage(error['message'] ?? 'Login gagal');
+        // Tangani kesalahan login lainnya
+        showMessage(responseData['message']?.toString() ?? 'Login gagal');
       }
     } catch (e) {
       showMessage('Terjadi kesalahan: $e');
@@ -222,7 +242,26 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ),
               ),
-              const SizedBox(height: 40),
+              Align(
+                alignment: Alignment.centerRight,
+                child: TextButton(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const ForgotPasswordScreen(),
+                      ),
+                    );
+                  },
+                  child: Text(
+                    'Lupa Password?',
+                    style: GoogleFonts.poppins(
+                      color: const Color(0xFF00A86B),
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ),
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(

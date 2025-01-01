@@ -136,9 +136,11 @@ class _CashScreenState extends State<CashScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        iconTheme: const IconThemeData(color: Colors.white),
         title: Text(
           'Pembayaran Cash',
-          style: GoogleFonts.poppins(),
+          style: GoogleFonts.poppins(
+              color: Colors.white, fontWeight: FontWeight.bold),
         ),
         backgroundColor: const Color(0xFF093C25),
       ),
@@ -150,9 +152,9 @@ class _CashScreenState extends State<CashScreen> {
             Text(
               'Detail Pesanan',
               style: GoogleFonts.poppins(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: const Color(0xFF093C25)),
             ),
             Expanded(
               child: ListView.builder(
@@ -180,9 +182,9 @@ class _CashScreenState extends State<CashScreen> {
             Text(
               'Total Biaya: ${formatCurrency.format(widget.totalCost)}',
               style: GoogleFonts.poppins(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-              ),
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: const Color(0xFF093C25)),
             ),
             TextField(
               controller: _amountController,
@@ -201,7 +203,7 @@ class _CashScreenState extends State<CashScreen> {
             const SizedBox(height: 10),
             Text(
               'Kembalian: ${formatCurrency.format(change)}',
-              style: GoogleFonts.poppins(),
+              style: GoogleFonts.poppins(color: const Color(0xFF093C25)),
             ),
             const SizedBox(height: 20),
             SizedBox(

@@ -128,9 +128,10 @@ class _CreditScreenState extends State<CreditScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        iconTheme: const IconThemeData(color: Colors.white),
         title: Text(
           'Pembayaran Kredit',
-          style: GoogleFonts.poppins(),
+          style: GoogleFonts.poppins(color: Colors.white),
         ),
         backgroundColor: const Color(0xFF093C25),
       ),
@@ -144,6 +145,7 @@ class _CreditScreenState extends State<CreditScreen> {
               style: GoogleFonts.poppins(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
+                color: const Color(0xFF093C25),
               ),
             ),
             Expanded(

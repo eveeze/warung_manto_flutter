@@ -14,14 +14,14 @@ class QRISScreen extends StatefulWidget {
   final ValueChanged<void> onPaymentComplete;
 
   const QRISScreen({
-    Key? key,
+    super.key,
     required this.items,
     required this.totalCost,
     required this.qrisUrl,
     required this.orderId,
     required this.token,
     required this.onPaymentComplete,
-  }) : super(key: key);
+  });
 
   @override
   _QRISScreenState createState() => _QRISScreenState();

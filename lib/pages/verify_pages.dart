@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:minggu_4/pages/main_screen.dart';
 
 class VerifyPage extends StatefulWidget {
   final String phone;
@@ -30,6 +29,67 @@ class _VerifyPageState extends State<VerifyPage> {
     super.dispose();
   }
 
+  Future<void> verifyOTP() async {
+    if (otpController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Kode OTP tidak boleh kosong!'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    setState(() {
+      isLoading = true;
+    });
+
+    try {
+      final response = await http.post(
+        Uri.parse('http://103.127.138.32/api/auth/verify-otp'),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({
+          'phone': widget.phone,
+          'otp': otpController.text,
+        }),
+      );
+
+      final data = json.decode(response.body);
+
+      if (response.statusCode == 200) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Verifikasi OTP berhasil'),
+            backgroundColor: Colors.green,
+          ),
+        );
+        // Navigasi ke halaman login
+        Navigator.of(context)
+            .pushNamedAndRemoveUntil('/login', (route) => false);
+      } else {
+        // Tampilkan pesan error dari server
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(data['message'] ?? 'Verifikasi OTP gagal'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
+      // Tangani error jaringan
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Terjadi kesalahan: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } finally {
+      setState(() {
+        isLoading = false;
+      });
+    }
+  }
+
   void showMessage(String message, {bool isError = true}) {
     if (!mounted) return;
 
@@ -51,50 +111,6 @@ class _VerifyPageState extends State<VerifyPage> {
         );
       },
     );
-  }
-
-  Future<void> verifyOTP() async {
-    if (otpController.text.isEmpty) {
-      showMessage("Kode OTP tidak boleh kosong!");
-      return;
-    }
-
-    setState(() {
-      isLoading = true;
-    });
-
-    try {
-      final response = await http.post(
-        Uri.parse('http://103.127.138.32/api/auth/verify-otp'),
-        headers: {'Content-Type': 'application/json'},
-        body: json.encode({
-          'phone': widget.phone,
-          'otp': otpController.text,
-        }),
-      );
-
-      final data = json.decode(response.body);
-
-      if (response.statusCode == 200 && data['token'] != null) {
-        final token = data['token'];
-
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(
-            builder: (context) => MainScreen(
-              token: token,
-            ),
-          ),
-        );
-      } else {
-        showMessage(data['message'] ?? 'Verifikasi OTP gagal');
-      }
-    } catch (e) {
-      showMessage('Terjadi kesalahan: $e');
-    } finally {
-      setState(() {
-        isLoading = false;
-      });
-    }
   }
 
   Future<void> resendOTP() async {
@@ -164,7 +180,7 @@ class _VerifyPageState extends State<VerifyPage> {
               Container(
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(12),
-                  color: Colors.yellow.shade50,
+                  color: Colors.green.shade50,
                   boxShadow: [
                     BoxShadow(
                       color: Colors.grey.withOpacity(0.3),
@@ -246,7 +262,8 @@ class _VerifyPageState extends State<VerifyPage> {
                     child: Text(
                       "Kirim Ulang OTP",
                       style: GoogleFonts.poppins(
-                        color: const Color(0xFFFFC107),
+                        color: const Color(0xFF1B9B5E),
+                        fontWeight: FontWeight.bold,
                         decoration: TextDecoration.underline,
                       ),
                     ),
